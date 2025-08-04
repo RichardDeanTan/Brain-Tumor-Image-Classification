@@ -57,7 +57,7 @@ CLASS_INFO = {
 def load_efficientnet_model():
     try:
         model_path = "model/finetune_model_tune.keras"
-        model = tf.keras.models.load_model(model_path)
+        model = tf.keras.models.load_model(model_path, compile=False)
         return model
     except Exception as e:
         st.error(f"Error loading EfficientNet B2 model: {str(e)}")
