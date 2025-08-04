@@ -421,6 +421,6 @@ if image_to_predict is not None:
 st.markdown("---")
 st.markdown("""
 <div class="footer">
-    <p>Richard Dean Tanjaya | Github: <a href="https://github.com/RichardDeanTan/indonesian-article-summarization" target="_blank">@RichardDeanTan</a></p>
+    <p>Richard Dean Tanjaya | Github: <a href="https://github.com/RichardDeanTan/Brain-Tumor-Image-Classification" target="_blank">@RichardDeanTan</a></p>
 </div>
 """, unsafe_allow_html=True)
