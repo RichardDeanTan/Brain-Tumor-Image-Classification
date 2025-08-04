@@ -8,7 +8,6 @@ from PIL import Image
 import os
 import plotly.graph_objects as go
 import plotly.express as px
-from tensorflow.keras.applications.efficientnet import preprocess_input
 
 try:
     import timm
@@ -57,7 +56,7 @@ CLASS_INFO = {
 def load_efficientnet_model():
     try:
         model_path = "model/finetune_model_tune.keras"
-        model = tf.keras.models.load_model(model_path, compile=False)
+        model = tf.keras.models.load_model(model_path)
         return model
     except Exception as e:
         st.error(f"Error loading EfficientNet B2 model: {str(e)}")
@@ -122,7 +121,7 @@ def preprocess_image_efficientnet(image):
     # Add batch dimension
     img_array = np.expand_dims(img_array, axis=0)
     # EfficientNet preprocessing
-    img_array = preprocess_input(img_array)
+    img_array = tf.keras.applications.efficientnet.preprocess_input(img_array)
 
     return img_array
 
