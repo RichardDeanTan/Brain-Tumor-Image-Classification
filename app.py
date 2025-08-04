@@ -301,13 +301,13 @@ with st.sidebar:
     
     st.markdown("---")
     
-    st.subheader("Model Performance")
+    st.subheader("✅ Model Performance")
     accuracy_fig = create_accuracy_comparison()
     st.plotly_chart(accuracy_fig, use_container_width=True)
     
     st.markdown("---")
     
-    st.subheader("About Tumor Types")
+    st.subheader("📖 About Tumor Types")
     selected_info = st.selectbox("Select tumor type for info:", CLASS_NAMES)
     st.write(CLASS_INFO[selected_info])
 
