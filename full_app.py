@@ -1,4 +1,5 @@
 import streamlit as st
+import tensorflow as tf
 import torch
 import torch.nn as nn
 from torchvision import transforms
@@ -52,6 +53,16 @@ CLASS_INFO = {
 }
 
 @st.cache_resource
+def load_efficientnet_model():
+    try:
+        model_path = "model/finetune_model_tune.keras"
+        model = tf.keras.models.load_model(model_path)
+        return model
+    except Exception as e:
+        st.error(f"Error loading EfficientNet B2 model: {str(e)}")
+        return None
+
+@st.cache_resource
 def load_efficientvit_model():
     if not TIMM_AVAILABLE:
         st.error("Error: 'timm' library is required for EfficientViT model.")
@@ -74,6 +85,7 @@ def load_efficientvit_model():
         else:
             state_dict = checkpoint
         
+        # Load state_dict into the model
         model.load_state_dict(state_dict)
         model.to(device)
         model.eval()
@@ -84,11 +96,38 @@ def load_efficientvit_model():
         st.error(f"Error loading EfficientViT B1 model: {str(e)}")
         return None
 
-# --- REMOVED preprocess_image_efficientnet() FUNCTION ---
+def preprocess_image_efficientnet(image):
+    if image.mode != 'RGB':
+        image = image.convert('RGB')
+    
+    image = image.resize((260, 260)).convert('RGB')
+    img_array = np.array(image, dtype=np.float32)
+    
+    if len(img_array.shape) == 2:
+        # Grayscale image --> convert to RGB (by repeating channels)
+        img_array = np.stack([img_array] * 3, axis=-1)
+    elif len(img_array.shape) == 3:
+        if img_array.shape[2] == 1:
+            # Single channel --> repeat to make 3 channels
+            img_array = np.repeat(img_array, 3, axis=2)
+        elif img_array.shape[2] == 4:
+            # RGBA --> take only RGB channels
+            img_array = img_array[:, :, :3]
+        elif img_array.shape[2] != 3:
+            raise ValueError(f"Invalid image shape: {img_array.shape}. Expected (H, W, 3)")
+    else:
+        raise ValueError(f"Invalid image shape: {img_array.shape}. Expected (H, W) or (H, W, C)")
+    
+    # Add batch dimension
+    img_array = np.expand_dims(img_array, axis=0)
+    # EfficientNet preprocessing
+    img_array = tf.keras.applications.efficientnet.preprocess_input(img_array)
+
+    return img_array
 
 def preprocess_image_efficientvit(image):
-    # Simplified version - .convert('RGB') handles all cases
-    image_rgb = image.convert('RGB')
+    if image.mode != 'RGB':
+        image = image.convert('RGB')
     
     transform = transforms.Compose([
         transforms.Resize((224, 224)),
@@ -96,13 +135,32 @@ def preprocess_image_efficientvit(image):
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
     
-    img_tensor = transform(image_rgb)
+    img_tensor = transform(image)
     
-    if img_tensor.shape[0] == 1:
-        img_tensor = img_tensor.repeat(3, 1, 1)
-
+    if img_tensor.shape[0] != 3:
+        # If grayscale --> repeat to make 3 channels
+        if img_tensor.shape[0] == 1:
+            img_tensor = img_tensor.repeat(3, 1, 1)
+        else:
+            raise ValueError(f"Unexpected number of channels: {img_tensor.shape[0]}. Expected 3.")
+    
+    # Add batch dimension
     img_tensor = img_tensor.unsqueeze(0)
+
     return img_tensor
+
+def predict_efficientnet(model, image):
+    if model is None:
+        return None, None
+    
+    processed_image = preprocess_image_efficientnet(image)
+    predictions = model.predict(processed_image, verbose=0)
+    
+    # Get probabilities
+    probabilities = tf.nn.softmax(predictions[0]).numpy()
+    predicted_class = np.argmax(probabilities)
+    
+    return predicted_class, probabilities
 
 def predict_efficientvit(model, image):
     if model is None:
@@ -112,6 +170,7 @@ def predict_efficientvit(model, image):
         processed_image = preprocess_image_efficientvit(image)
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         processed_image = processed_image.to(device)
+        model = model.to(device)
         
         with torch.no_grad():
             outputs = model(processed_image)
@@ -121,7 +180,7 @@ def predict_efficientvit(model, image):
         
         return predicted_class, probabilities
     except Exception as e:
-        st.error(f"Error during EfficientViT prediction: {str(e)}")
+        st.error(f"Error EfficientViT prediction: {str(e)}")
         return None, None
 
 def create_confidence_chart(probabilities, class_names):
@@ -189,10 +248,12 @@ def resize_image_to_square(image, size=300):
     width, height = image.size
     max_dim = max(width, height)
     
+    # Create a new square image with white background
     square_image = Image.new('RGB', (max_dim, max_dim), (255, 255, 255))
     x = (max_dim - width) // 2
     y = (max_dim - height) // 2
     
+    # Paste original image to the square background
     square_image.paste(image, (x, y))
     
     return square_image.resize((size, size))
@@ -215,18 +276,31 @@ with st.sidebar:
     )
     st.markdown("---")
     
-    st.subheader("🎯 Active Model")
-    st.info("""
-    This app automatically uses the **EfficientViT B1** model for its superior performance.
-    - **Architecture:** EfficientViT B1
-    - **Parameters:** 7.5 million
-    - **Accuracy:** **98.05%** - test set
-    """)
+    st.subheader("🎯 Model Selection")
+    selected_model = st.radio(
+        "Choose a model for prediction:",
+        ["EfficientNet B2", "EfficientViT B1"]
+    )
+    
+    st.markdown("---")
+    
+    st.subheader("📋 Model Information")
+    if selected_model == "EfficientNet B2":
+        st.info("""
+        - **Architecture:** EfficientNet B2
+        - **Parameters:** 7.7 million
+        - **Accuracy:** 89.65% - test set
+        """)
+    else:
+        st.info("""
+        - **Architecture:** EfficientViT B1
+        - **Parameters:** 7.5 million
+        - **Accuracy:** 98.05% - test set
+        """)
     
     st.markdown("---")
     
     st.subheader("✅ Model Performance")
-    st.write("Comparison of the models developed for this task:")
     accuracy_fig = create_accuracy_comparison()
     st.plotly_chart(accuracy_fig, use_container_width=True)
     
@@ -240,12 +314,13 @@ with st.sidebar:
 st.markdown('<h1 class="main-header">🧠 Brain Tumor MRI Classification System</h1>', unsafe_allow_html=True)
 
 st.markdown("""
-This application uses a state-of-the-art **EfficientViT B1** (Vision Transformer) model to classify brain MRI scans into four categories: 
+This application uses deep learning models to classify brain MRI scans into four categories: 
 **Glioma**, **Meningioma**, **No Tumor**, and **Pituitary** tumor.
 """)
 
 # === Load Models ===
-with st.spinner("Loading the classification model..."):
+with st.spinner("Loading models..."):
+    efficientnet_model = load_efficientnet_model()
     efficientvit_model = load_efficientvit_model()
 
 # === Sample Images ===
@@ -304,13 +379,22 @@ if image_to_predict is not None:
         st.image(display_image, caption="Image for Prediction", use_container_width=True)
     
     with col2:
-        # --- CHANGED --- Simplified prediction logic
-        with st.spinner("Making prediction with EfficientViT B1 model..."):
+        with st.spinner(f"Making prediction with {selected_model}..."):
             try:
-                if efficientvit_model is not None:
-                    predicted_class, probabilities = predict_efficientvit(efficientvit_model, image_to_predict)
+                if selected_model == "EfficientNet B2":
+                    if efficientnet_model is not None:
+                        predicted_class, probabilities = predict_efficientnet(efficientnet_model, image_to_predict)
+                    else:
+                        st.error("EfficientNet B2 model is not loaded properly.")
+                        predicted_class, probabilities = None, None
+                elif selected_model == "EfficientViT B1":
+                    if efficientvit_model is not None:
+                        predicted_class, probabilities = predict_efficientvit(efficientvit_model, image_to_predict)
+                    else:
+                        st.error("EfficientViT B1 model is not loaded properly.")
+                        predicted_class, probabilities = None, None
                 else:
-                    st.error("EfficientViT B1 model is not loaded properly.")
+                    st.error(f"Unknown model selected: {selected_model}")
                     predicted_class, probabilities = None, None
             except Exception as e:
                 st.error(f"Error during prediction: {str(e)}")
@@ -323,6 +407,7 @@ if image_to_predict is not None:
             st.success(f"**Prediction:** {predicted_label}")
             st.info(f"**Confidence:** {confidence:.2f}%")
             
+            # Display confidence chart
             confidence_fig = create_confidence_chart(probabilities, CLASS_NAMES)
             st.plotly_chart(confidence_fig, use_container_width=True)
             
