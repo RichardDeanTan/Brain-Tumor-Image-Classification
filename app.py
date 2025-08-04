@@ -8,7 +8,6 @@ from PIL import Image
 import os
 import plotly.graph_objects as go
 import plotly.express as px
-from tensorflow.keras.preprocessing.image import img_to_array
 
 try:
     import timm
@@ -102,7 +101,22 @@ def preprocess_image_efficientnet(image):
         image = image.convert('RGB')
     
     image = image.resize((260, 260)).convert('RGB')
-    img_array = img_to_array(image)
+    img_array = np.array(image, dtype=np.float32)
+    
+    if len(img_array.shape) == 2:
+        # Grayscale image --> convert to RGB (by repeating channels)
+        img_array = np.stack([img_array] * 3, axis=-1)
+    elif len(img_array.shape) == 3:
+        if img_array.shape[2] == 1:
+            # Single channel --> repeat to make 3 channels
+            img_array = np.repeat(img_array, 3, axis=2)
+        elif img_array.shape[2] == 4:
+            # RGBA --> take only RGB channels
+            img_array = img_array[:, :, :3]
+        elif img_array.shape[2] != 3:
+            raise ValueError(f"Invalid image shape: {img_array.shape}. Expected (H, W, 3)")
+    else:
+        raise ValueError(f"Invalid image shape: {img_array.shape}. Expected (H, W) or (H, W, C)")
     
     # Add batch dimension
     img_array = np.expand_dims(img_array, axis=0)
