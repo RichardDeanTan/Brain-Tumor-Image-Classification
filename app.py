@@ -206,7 +206,7 @@ with st.sidebar:
         <div style="margin-bottom:0.2em">
             <span>Check Out the other app:</span>
             <br>
-            <a href="#" target="_blank" class="custom-link">
+            <a href="https://brain-tumor-object-detection-richardtanjaya.streamlit.app/" target="_blank" class="custom-link">
                 Brain Tumor Object Detection
             </a>
         </div>

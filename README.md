@@ -37,13 +37,13 @@ Klik link berikut untuk langsung membuka aplikasi web:
 #### 👉 [Streamlit - Brain Tumor Image Classification](https://brain-tumor-image-classification-richardtanjaya.streamlit.app/)
 
 ## 💡 Fitur
-- ✅ **Klasifikasi Multi-Kelas |** Mengklasifikasikan pindaian MRI otak ke dalam empat kategori: Glioma, Meningioma, Tanpa Tumor, dan Pituitary.
-- ✅ **Arsitektur Dua Model |** Mengimplementasikan model CNN (`EfficientNet B2`) dan Vision Transformer (`EfficientViT B1`) untuk klasifikasi.
-- ✅ **Prediksi Akurasi Tinggi |** Versi yang di-deploy menggunakan model EfficientViT B1, yang mencapai akurasi 98.05% pada test set.
-- ✅ **Antarmuka Interaktif |** Pengguna dapat mengunggah gambar MRI mereka sendiri (.jpg, .png, .jpeg) atau menggunakan contoh gambar yang disediakan untuk prediksi instan.
-- ✅ **Visualisasi Skor Kepercayaan |** Menampilkan grafik batang dengan skor kepercayaan prediksi untuk setiap kelas menggunakan Plotly.
-- ✅ **Perbandingan Performa Model |** Grafik di sidebar secara visual membandingkan akurasi dari kedua model yang diimplementasikan.
-- ✅ **Konten Informatif |** Menyediakan deskripsi yang jelas untuk setiap jenis tumor otak.
+- ✅ **Multi-Class Classification** — Mengklasifikasikan pindaian MRI otak ke dalam empat kategori: Glioma, Meningioma, Pituitary, dan Tanpa Tumor (No Tumor).
+- ✅ **Dual Model Architecture** — Menggunakan dua arsitektur: CNN (`EfficientNet B2`) dan Vision Transformer (`EfficientViT B1`) untuk tugas klasifikasi.
+- ✅ **High Accuracy Prediction** — Model `EfficientViT B1` yang digunakan dalam versi deployment mencapai akurasi hingga 98.05% pada test set.
+- ✅ **Interactive Interface** — Pengguna dapat mengunggah gambar MRI (.jpg, .png, .jpeg) atau memilih dari contoh gambar yang tersedia untuk prediksi instan.
+- ✅ **Confidence Score Visualization** — Menampilkan grafik batang (bar chart) dengan skor kepercayaan untuk setiap kelas menggunakan Plotly.
+- ✅ **Model Performance Comparison** — Sidebar menampilkan perbandingan akurasi antara kedua model yang digunakan.
+- ✅ **Informative Content** — Terdapat deskripsi yang jelas dan singkat untuk setiap jenis tumor otak agar pengguna memahami hasil prediksi.
 
 ## ⚙️ Tech Stack
 - **Deep Learning Models** ~ TensorFlow/Keras, PyTorch
